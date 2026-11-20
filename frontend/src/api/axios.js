@@ -16,7 +16,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 (auto-logout)
+// Handle 401 (auto-logout) & 429 (rate-limit)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -26,6 +26,10 @@ api.interceptors.response.use(
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
+    } else if (error.response?.status === 429) {
+      const message = error.response?.data?.message || 'Terlalu banyak permintaan. Silakan coba lagi sebentar.';
+      // Jangan biarkan aplikasi crash; berikan pesan yang jelas
+      console.warn('Rate limit exceeded:', message);
     }
     return Promise.reject(error);
   }

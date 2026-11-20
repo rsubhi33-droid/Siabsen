@@ -46,4 +46,10 @@ module.exports = {
       idle: 10000,
     },
   },
+  bridge_sso: {
+    enabled: process.env.BRIDGE_SSO_ENABLED !== 'false',
+    baseUrl: (process.env.BRIDGE_SSO_BASE_URL || 'https://bridge.uinssc.ac.id').replace(/\/+$/, ''),
+    timeout: parseInt(process.env.BRIDGE_SSO_TIMEOUT, 10) || 8,
+    simulate: process.env.BRIDGE_SSO_SIMULATE === 'true',
+  },
 };

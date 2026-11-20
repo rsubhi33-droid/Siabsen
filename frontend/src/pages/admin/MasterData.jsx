@@ -29,7 +29,13 @@ const MasterData = () => {
 
   const handleDelete = async (id) => {
     if (!confirm('Hapus data ini?')) return;
-    try { await deleteMasterData(id); toast.success('Dihapus'); fetchData(); } catch { toast.error('Gagal menghapus'); }
+    try {
+      await deleteMasterData(id);
+      toast.success('Dihapus');
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menghapus');
+    }
   };
 
   const set = (f) => (e) => setForm({ ...form, [f]: e.target.value });
@@ -60,7 +66,7 @@ const MasterData = () => {
                   <tr key={item.id}>
                     <td><span className={`badge ${tipeBadge[item.tipe] || 'badge-neutral'}`}>{item.tipe.replace('_', ' ')}</span></td>
                     <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.nama}</td>
-                    <td><code style={{ background: 'var(--glass-bg)', padding: '2px 8px', borderRadius: 4, fontSize: '0.8rem' }}>{item.kode || '-'}</code></td>
+                    <td><code style={{ background: 'var(--surface-100)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: 4, fontSize: '0.8rem' }}>{item.kode || '-'}</code></td>
                     <td>{item.deskripsi || '-'}</td>
                     <td>
                       <div className="flex gap-2">

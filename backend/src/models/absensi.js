@@ -7,6 +7,7 @@ module.exports = (sequelize) => {
       Absensi.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
       Absensi.belongsTo(models.Kegiatan, { foreignKey: 'kegiatan_id', as: 'kegiatan' });
       Absensi.belongsTo(models.SesiKegiatan, { foreignKey: 'sesi_id', as: 'sesi' });
+      Absensi.belongsTo(models.User, { foreignKey: 'verified_by', as: 'verifikator' });
     }
   }
 

@@ -8,13 +8,28 @@ const registerSchema = z.object({
   prodi: z.string().max(100).optional(),
   angkatan: z.number().int().min(2000).max(2099).optional(),
   no_hp: z.string().max(20).optional(),
-  role: z.enum(['mahasiswa', 'panitia', 'admin', 'dosen']).optional(),
 });
 
-const loginSchema = z.object({
-  email: z.string().email('Format email tidak valid'),
-  password: z.string().min(1, 'Password wajib diisi'),
-});
+const loginSchema = z
+  .object({
+    identifier: z.string().optional(),
+    username: z.string().optional(),
+    email: z.string().optional(),
+    password: z.string().min(1, 'Password wajib diisi'),
+  })
+  .refine(
+    (data) => {
+      const val = (data.identifier || data.username || data.email || '').trim();
+      if (!val) return false;
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      const isDigits = /^\d+$/.test(val);
+      return isEmail || isDigits;
+    },
+    {
+      message: 'Kredensial harus berupa Email valid (akun lokal) atau NIM / NIP berupa angka (SSO Kampus).',
+      path: ['email'],
+    }
+  );
 
 const updateProfileSchema = z.object({
   nama: z.string().min(2).max(100).optional(),

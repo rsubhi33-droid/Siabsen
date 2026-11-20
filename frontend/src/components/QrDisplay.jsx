@@ -1,33 +1,49 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { RefreshCw, Timer, Wifi } from 'lucide-react';
 
-const QrDisplay = ({ qrToken, qrImage, sesi, onRefresh, ttl = 60 }) => {
+const QrDisplay = ({ qrToken, qrImage, sesi, onRefresh, ttl = 60, autoRefresh = true }) => {
   const [timeLeft, setTimeLeft] = useState(ttl);
   const [isExpired, setIsExpired] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const onRefreshRef = useRef(onRefresh);
+
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
   useEffect(() => {
     setTimeLeft(ttl);
     setIsExpired(false);
+    setIsRefreshing(false);
   }, [qrToken, ttl]);
 
   useEffect(() => {
     if (timeLeft <= 0) {
-      setIsExpired(true);
+      if (autoRefresh && onRefreshRef.current) {
+        setIsRefreshing(true);
+        // Panggil auto-refresh
+        Promise.resolve(onRefreshRef.current(true)).finally(() => {
+          setIsRefreshing(false);
+        });
+      } else {
+        setIsExpired(true);
+      }
       return;
     }
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          setIsExpired(true);
           clearInterval(timer);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, autoRefresh]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -49,7 +65,7 @@ const QrDisplay = ({ qrToken, qrImage, sesi, onRefresh, ttl = 60 }) => {
           <div style={{ width: 280, height: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
             <Timer size={48} style={{ color: 'var(--danger-400)', opacity: 0.7 }} />
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center' }}>QR Code telah kadaluarsa</p>
-            <button className="btn btn-primary" onClick={onRefresh} id="btn-refresh-qr">
+            <button className="btn btn-primary" onClick={() => onRefresh && onRefresh(false)} id="btn-refresh-qr">
               <RefreshCw size={18} /> Generate Ulang
             </button>
           </div>
@@ -66,8 +82,9 @@ const QrDisplay = ({ qrToken, qrImage, sesi, onRefresh, ttl = 60 }) => {
 
       {!isExpired && (
         <>
-          <div className="qr-timer" style={{ color: getTimerColor() }}>
-            {formatTime(timeLeft)}
+          <div className="qr-timer" style={{ color: getTimerColor(), display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {isRefreshing && <RefreshCw size={16} className="animate-spin" />}
+            <span>{formatTime(timeLeft)}</span>
           </div>
           <div style={{ width: 200, height: 4, background: 'var(--border-default)', borderRadius: 'var(--radius-full)', marginTop: 8, overflow: 'hidden' }}>
             <div style={{
@@ -78,6 +95,11 @@ const QrDisplay = ({ qrToken, qrImage, sesi, onRefresh, ttl = 60 }) => {
               transition: 'width 1s linear, background 0.3s',
             }} />
           </div>
+          {autoRefresh && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
+              🔄 Berganti otomatis setiap {ttl} detik
+            </p>
+          )}
         </>
       )}
 
@@ -93,8 +115,14 @@ const QrDisplay = ({ qrToken, qrImage, sesi, onRefresh, ttl = 60 }) => {
       )}
 
       {!isExpired && onRefresh && (
-        <button className="btn btn-ghost" onClick={onRefresh} style={{ marginTop: 16 }} id="btn-refresh-qr-manual">
-          <RefreshCw size={16} /> Refresh QR
+        <button
+          className="btn btn-ghost"
+          onClick={() => onRefresh(false)}
+          disabled={isRefreshing}
+          style={{ marginTop: 16 }}
+          id="btn-refresh-qr-manual"
+        >
+          <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} /> Refresh Manual
         </button>
       )}
     </div>

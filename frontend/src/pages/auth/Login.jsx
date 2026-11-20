@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { login } from '../../api/auth';
-import { ClipboardCheck, Mail, Lock, ArrowRight } from 'lucide-react';
+import { ClipboardCheck, User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { loginUser } = useAuth();
   const navigate = useNavigate();
@@ -43,20 +44,23 @@ const Login = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label" htmlFor="login-email">Email</label>
+              <label className="form-label" htmlFor="login-email">Email / NIM / NIP</label>
               <div style={{ position: 'relative' }}>
-                <Mail size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <User size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   id="login-email"
-                  type="email"
+                  type="text"
                   className="form-input"
-                  placeholder="nama@email.com"
+                  placeholder="nama@email.com atau NIM/NIP"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   style={{ paddingLeft: 42 }}
                   required
                 />
               </div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: 4 }}>
+                Masukkan NIM/NIP untuk login otomatis via SSO Portal Kampus
+              </span>
             </div>
 
             <div className="form-group">
@@ -65,14 +69,35 @@ const Login = () => {
                 <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   id="login-password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   className="form-input"
                   placeholder="Masukkan password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  style={{ paddingLeft: 42 }}
+                  style={{ paddingLeft: 42, paddingRight: 42 }}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 4,
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
@@ -95,7 +120,7 @@ const Login = () => {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 24, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          Demo: admin@fakultas.ac.id / password123
+          Demo: admin@fakultas.ac.id (Lokal) | 210101001 (SSO Mahasiswa) | 198501012010011001 (SSO Dosen)
         </p>
       </div>
     </div>

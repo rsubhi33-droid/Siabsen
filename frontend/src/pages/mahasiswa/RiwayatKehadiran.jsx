@@ -89,13 +89,13 @@ const RiwayatKehadiran = () => {
                       background: `${cfg.color}15`, border: `2px solid ${cfg.color}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0, position: 'relative', zIndex: 1,
-                      backgroundColor: 'var(--surface-900)',
+                      backgroundColor: 'var(--surface-0)',
                     }}>
                       <IconComp size={18} style={{ color: cfg.color }} />
                     </div>
 
                     {/* Content */}
-                    <div style={{ flex: 1, padding: 16, background: 'var(--glass-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+                    <div style={{ flex: 1, padding: 16, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
                       <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
                         <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                           {item.kegiatan?.nama || 'Kegiatan'}

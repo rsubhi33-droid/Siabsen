@@ -36,10 +36,27 @@ const generate = async (req, res, next) => {
  */
 const download = async (req, res, next) => {
   try {
-    const laporan = await db.Laporan.findByPk(req.params.id);
+    const laporan = await db.Laporan.findByPk(req.params.id, {
+      include: [{ model: db.Kegiatan, as: 'kegiatan' }],
+    });
     if (!laporan) throw ApiError.notFound('Laporan tidak ditemukan.');
 
-    return res.download(laporan.filepath, laporan.filename);
+    // Cek hak akses:
+    // Hanya Admin dan Dosen yang memiliki hak akses untuk mengunduh laporan kegiatan.
+    const isAllowed = req.user.role === 'admin' || req.user.role === 'dosen';
+
+    if (!isAllowed) {
+      throw ApiError.forbidden('Anda tidak memiliki akses untuk mengunduh laporan kegiatan ini.');
+    }
+
+    // Validasi path traversal
+    const safeFilePath = laporanService.validateReportPath(laporan.filepath);
+    const fs = require('fs');
+    if (!fs.existsSync(safeFilePath)) {
+      throw ApiError.notFound('File laporan fisik tidak ditemukan pada server.');
+    }
+
+    return res.download(safeFilePath, laporan.filename);
   } catch (err) {
     next(err);
   }

@@ -1,4 +1,6 @@
+const db = require('../models');
 const absensiService = require('../services/absensi.service');
+const ApiError = require('../utils/ApiError');
 const { success, created, paginated } = require('../utils/response');
 
 /**
@@ -39,6 +41,16 @@ const manualCheckIn = async (req, res, next) => {
  */
 const getBySesi = async (req, res, next) => {
   try {
+    const sesi = await db.SesiKegiatan.findByPk(req.params.sesiId, {
+      include: [{ model: db.Kegiatan, as: 'kegiatan' }],
+    });
+    if (!sesi) throw ApiError.notFound('Sesi kegiatan tidak ditemukan.');
+
+    // Cek kepemilikan untuk panitia (admin & dosen memiliki akses pengawasan menyeluruh)
+    if (req.user.role === 'panitia' && sesi.kegiatan && sesi.kegiatan.created_by !== req.user.id) {
+      throw ApiError.forbidden('Anda bukan panitia penyelenggara kegiatan ini.');
+    }
+
     const data = await absensiService.getAttendanceBySesi(req.params.sesiId);
     return success(res, { data });
   } catch (err) {

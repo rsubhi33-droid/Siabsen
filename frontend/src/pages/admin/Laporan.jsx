@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { FileText, Download, Plus } from 'lucide-react';
-import { getLaporan, generateLaporan } from '../../api/laporan';
+import { getLaporan, generateLaporan, downloadLaporanFile } from '../../api/laporan';
 import { getKegiatan } from '../../api/kegiatan';
 import toast from 'react-hot-toast';
-import api from '../../api/axios';
 
 const Laporan = () => {
   const [data, setData] = useState([]);
@@ -32,10 +31,13 @@ const Laporan = () => {
     } catch (err) { toast.error(err.response?.data?.message || 'Gagal'); }
   };
 
-  const handleDownload = (id, filename) => {
-    const token = localStorage.getItem('siabsen_token');
-    const baseURL = api.defaults.baseURL;
-    window.open(`${baseURL}/laporan/download/${id}?token=${token}`, '_blank');
+  const handleDownload = async (id, filename) => {
+    try {
+      await downloadLaporanFile(id, filename);
+      toast.success('Laporan berhasil diunduh');
+    } catch (err) {
+      toast.error('Gagal mengunduh laporan');
+    }
   };
 
   return (

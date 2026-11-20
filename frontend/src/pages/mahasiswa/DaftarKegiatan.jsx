@@ -18,19 +18,21 @@ const DaftarKegiatan = () => {
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({});
   const [statusFilter, setStatusFilter] = useState('');
+  const [hanyaSaya, setHanyaSaya] = useState(false);
 
   // Detail modal
   const [detailData, setDetailData] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  useEffect(() => { fetchData(); }, [page, search, statusFilter]);
+  useEffect(() => { fetchData(); }, [page, search, statusFilter, hanyaSaya]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const params = { page, limit: 12, search };
       if (statusFilter) params.status = statusFilter;
+      if (hanyaSaya) params.saya = true;
       const res = await getKegiatan(params);
       setData(res.data.data);
       setMeta(res.data.meta || {});
@@ -63,8 +65,15 @@ const DaftarKegiatan = () => {
             <input className="form-input" placeholder="Cari kegiatan..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ paddingLeft: 36 }} id="search-kegiatan-mhs" />
           </div>
           <div className="flex gap-2">
+            <button
+              className={`btn ${hanyaSaya ? 'btn-accent' : 'btn-ghost'} btn-sm`}
+              onClick={() => { setHanyaSaya(!hanyaSaya); setPage(1); }}
+              id="filter-kegiatan-saya"
+            >
+              ★ Kegiatan Saya
+            </button>
             {['', 'aktif', 'selesai', 'draft'].map((s) => (
-              <button key={s} className={`btn ${statusFilter === s ? 'btn-primary' : 'btn-ghost'} btn-sm`} onClick={() => { setStatusFilter(s); setPage(1); }}>
+              <button key={s} className={`btn ${!hanyaSaya && statusFilter === s ? 'btn-primary' : 'btn-ghost'} btn-sm`} onClick={() => { setStatusFilter(s); setPage(1); }}>
                 {s === '' ? 'Semua' : s === 'aktif' ? 'Berlangsung' : s === 'selesai' ? 'Selesai' : 'Segera'}
               </button>
             ))}
@@ -87,7 +96,7 @@ const DaftarKegiatan = () => {
                 <div style={{ padding: 24 }}>
                   <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
                     <span className={`badge ${statusBadge[item.status]}`}>{statusLabel[item.status] || item.status}</span>
-                    {item.kategori?.nama && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--glass-bg)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>{item.kategori.nama}</span>}
+                    {item.kategori?.nama && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--surface-100)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>{item.kategori.nama}</span>}
                   </div>
 
                   <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.3 }}>{item.nama}</h3>
@@ -158,11 +167,11 @@ const DaftarKegiatan = () => {
                 )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-                  <div style={{ padding: 16, background: 'var(--glass-bg)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ padding: 16, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)' }}>
                     <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 4 }}><CalendarDays size={14} /> Tanggal</div>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{detailData.tanggal_mulai}</div>
                   </div>
-                  <div style={{ padding: 16, background: 'var(--glass-bg)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ padding: 16, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)' }}>
                     <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 4 }}><MapPin size={14} /> Lokasi</div>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{detailData.lokasi || '-'}</div>
                   </div>
@@ -173,7 +182,7 @@ const DaftarKegiatan = () => {
                     <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 12 }}>Jadwal Sesi ({detailData.sesi.length})</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {detailData.sesi.map(s => (
-                        <div key={s.id} style={{ padding: 14, background: 'var(--glass-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+                        <div key={s.id} style={{ padding: 14, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
                           <div className="flex items-center justify-between">
                             <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{s.nama_sesi}</div>
                             <span className={`badge ${s.is_open ? 'badge-accent' : 'badge-neutral'}`} style={{ fontSize: '0.65rem' }}>

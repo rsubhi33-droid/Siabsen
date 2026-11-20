@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Monitor, Users, QrCode, RefreshCw, Clock, UserCheck, AlertTriangle, Search } from 'lucide-react';
+import { Monitor, Users, QrCode, RefreshCw, Clock, UserCheck, AlertTriangle, Search, Info, Mail, Phone, Calendar, CheckCircle2 } from 'lucide-react';
 import { getKegiatan } from '../../api/kegiatan';
 import { getSesiByKegiatan, generateQr, toggleSesi } from '../../api/sesi';
 import { getAbsensiBySesi, manualCheckIn } from '../../api/absensi';
-import { getUsers } from '../../api/masterData';
+import { searchMahasiswaApi } from '../../api/masterData';
 import QrDisplay from '../../components/QrDisplay';
 import toast from 'react-hot-toast';
 
@@ -21,6 +21,10 @@ const MonitoringLive = () => {
   const [mahasiswaSearch, setMahasiswaSearch] = useState('');
   const [mahasiswaList, setMahasiswaList] = useState([]);
   const [searchingMhs, setSearchingMhs] = useState(false);
+
+  // Detail Mahasiswa Modal
+  const [selectedAbsensi, setSelectedAbsensi] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const refreshIntervalRef = useRef(null);
 
@@ -73,13 +77,19 @@ const MonitoringLive = () => {
     setQrData(null);
   };
 
-  const handleGenerateQr = async () => {
+  const handleGenerateQr = async (isAuto = false) => {
     if (!selectedSesi) return;
     try {
       const res = await generateQr(selectedSesi.id);
       setQrData(res.data.data);
-      toast.success('QR Code di-generate');
-    } catch (err) { toast.error(err.response?.data?.message || 'Gagal generate QR'); }
+      if (!isAuto) {
+        toast.success('QR Code di-generate');
+      }
+    } catch (err) {
+      if (!isAuto) {
+        toast.error(err.response?.data?.message || 'Gagal generate QR');
+      }
+    }
   };
 
   const handleToggle = async () => {
@@ -97,16 +107,20 @@ const MonitoringLive = () => {
     if (!mahasiswaSearch.trim()) return;
     setSearchingMhs(true);
     try {
-      const res = await getUsers({ search: mahasiswaSearch, role: 'mahasiswa', limit: 10 });
-      setMahasiswaList(res.data.data);
+      const res = await searchMahasiswaApi({ search: mahasiswaSearch, limit: 10 });
+      setMahasiswaList(res.data.data || []);
     } catch { toast.error('Gagal mencari mahasiswa'); }
     finally { setSearchingMhs(false); }
   };
 
   const handleManualCheckin = async (userId) => {
     try {
-      await manualCheckIn({ user_id: userId, sesi_id: selectedSesi.id });
-      toast.success('Absensi manual berhasil');
+      await manualCheckIn({
+        user_id: userId,
+        sesi_id: selectedSesi.id,
+        catatan: 'Check-in manual oleh panitia via Monitoring Live',
+      });
+      toast.success('Absensi manual berhasil dicatat');
       setShowManualModal(false);
       setMahasiswaSearch('');
       setMahasiswaList([]);
@@ -114,8 +128,30 @@ const MonitoringLive = () => {
     } catch (err) { toast.error(err.response?.data?.message || 'Gagal absensi manual'); }
   };
 
+  const getSesiTimeStatus = (sesi) => {
+    if (!sesi) return { label: '-', className: 'badge-neutral' };
+    const now = new Date();
+    const [startH = 0, startM = 0] = (sesi.jam_mulai || '00:00').split(':').map(Number);
+    const [endH = 23, endM = 59] = (sesi.jam_selesai || '23:59').split(':').map(Number);
+
+    const startDateTime = new Date(sesi.tanggal);
+    startDateTime.setHours(startH, startM, 0, 0);
+
+    const endDateTime = new Date(sesi.tanggal);
+    endDateTime.setHours(endH, endM, 0, 0);
+
+    if (now < startDateTime) {
+      return { label: 'Belum Mulai', className: 'badge-neutral' };
+    }
+    if (now > endDateTime) {
+      return { label: 'Selesai', className: 'badge-danger' };
+    }
+    return { label: 'Sedang Berlangsung', className: 'badge-accent' };
+  };
+
   const hadirCount = absensiList.filter(a => a.status === 'hadir').length;
   const terlambatCount = absensiList.filter(a => a.status === 'terlambat').length;
+  const sesiTimeStatus = getSesiTimeStatus(selectedSesi);
 
   return (
     <div>
@@ -141,7 +177,14 @@ const MonitoringLive = () => {
               if (s) handleSelectSesi(s);
             }} id="select-sesi-monitoring">
               <option value="">-- Pilih Sesi --</option>
-              {sesiList.map(s => <option key={s.id} value={s.id}>{s.nama_sesi} ({s.tanggal})</option>)}
+              {sesiList.map(s => {
+                const status = getSesiTimeStatus(s);
+                return (
+                  <option key={s.id} value={s.id}>
+                    {s.nama_sesi} ({s.tanggal} {s.jam_mulai}-{s.jam_selesai}) - [{status.label}]
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -174,6 +217,18 @@ const MonitoringLive = () => {
               <div className="stat-value">{terlambatCount}</div>
               <div className="stat-label">Terlambat</div>
             </div>
+            <div className="stat-card">
+              <div className="stat-icon"><Clock size={24} /></div>
+              <div className="stat-value" style={{ fontSize: '1rem', marginTop: 4 }}>
+                <span className={`badge ${selectedSesi.is_open ? 'badge-accent' : 'badge-neutral'}`} style={{ marginRight: 6 }}>
+                  {selectedSesi.is_open ? 'Terbuka' : 'Ditutup'}
+                </span>
+                <span className={`badge ${sesiTimeStatus.className}`}>
+                  {sesiTimeStatus.label}
+                </span>
+              </div>
+              <div className="stat-label">Status Sesi</div>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -205,7 +260,8 @@ const MonitoringLive = () => {
                   qrImage={qrData.qr_image}
                   sesi={selectedSesi}
                   ttl={60}
-                  onRefresh={handleGenerateQr}
+                  autoRefresh={true}
+                  onRefresh={(isAuto) => handleGenerateQr(isAuto)}
                 />
               )}
             </div>
@@ -223,17 +279,47 @@ const MonitoringLive = () => {
               {absensiList.length === 0 ? (
                 <div className="empty-state" style={{ padding: 32 }}><Users /><h3>Belum Ada Peserta</h3><p>Menunggu peserta melakukan scan QR...</p></div>
               ) : (
-                <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+                <div style={{ maxHeight: 520, overflowY: 'auto' }}>
                   {absensiList.map((a, i) => (
-                    <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: i < absensiList.length - 1 ? '1px solid var(--border-default)' : 'none' }}>
+                    <div
+                      key={a.id}
+                      onClick={() => { setSelectedAbsensi(a); setShowDetailModal(true); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '12px 10px',
+                        borderBottom: i < absensiList.length - 1 ? '1px solid var(--border-default)' : 'none',
+                        cursor: 'pointer',
+                        borderRadius: 'var(--radius-sm)',
+                        transition: 'background 0.2s',
+                      }}
+                      className="hover-highlight"
+                      title="Klik untuk melihat detail mahasiswa"
+                    >
                       <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-full)', background: a.status === 'hadir' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(249, 115, 22, 0.15)', color: a.status === 'hadir' ? 'var(--accent-400)' : 'var(--warm-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                         {i + 1}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{a.user?.nama || '-'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{a.user?.nim || '-'} • {a.user?.prodi || '-'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{a.user?.nama || '-'}</span>
+                          <span className="badge badge-neutral" style={{ fontSize: '0.68rem', padding: '1px 6px', textTransform: 'uppercase' }}>
+                            {a.metode === 'qr_scan' ? 'QR' : 'Manual'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                          {a.user?.nim || '-'} • {a.user?.prodi || '-'}
+                        </div>
                       </div>
-                      <span className={`badge ${a.status === 'hadir' ? 'badge-accent' : 'badge-warm'}`}>{a.status}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        <span className={`badge ${a.status === 'hadir' ? 'badge-accent' : 'badge-warm'}`} style={{ fontSize: '0.72rem' }}>
+                          {a.status}
+                        </span>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} />
+                          {a.waktu_checkin ? new Date(a.waktu_checkin).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -271,6 +357,109 @@ const MonitoringLive = () => {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Detail Mahasiswa Hadir Modal */}
+      {showDetailModal && selectedAbsensi && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal animate-slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Detail Mahasiswa</h2>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowDetailModal(false)}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid var(--border-default)' }}>
+              <div style={{
+                width: 56,
+                height: 56,
+                borderRadius: 'var(--radius-full)',
+                background: selectedAbsensi.status === 'hadir' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(249, 115, 22, 0.15)',
+                color: selectedAbsensi.status === 'hadir' ? 'var(--accent-400)' : 'var(--warm-400)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.4rem',
+                fontWeight: 700,
+                flexShrink: 0
+              }}>
+                {selectedAbsensi.user?.nama?.charAt(0) || 'M'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  {selectedAbsensi.user?.nama || '-'}
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  {selectedAbsensi.user?.nim || 'NIM Tidak Ada'}
+                </p>
+              </div>
+              <span className={`badge ${selectedAbsensi.status === 'hadir' ? 'badge-accent' : 'badge-warm'}`} style={{ textTransform: 'uppercase' }}>
+                {selectedAbsensi.status}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '20px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Program Studi</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{selectedAbsensi.user?.prodi || '-'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Angkatan</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{selectedAbsensi.user?.angkatan || '-'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Email</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{selectedAbsensi.user?.email || '-'}</span>
+              </div>
+              {selectedAbsensi.user?.no_hp && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No. Handphone</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{selectedAbsensi.user?.no_hp}</span>
+                </div>
+              )}
+              <div style={{ height: 1, background: 'var(--border-default)', margin: '4px 0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Waktu Check-in</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-400)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Clock size={14} />
+                  {selectedAbsensi.waktu_checkin
+                    ? new Date(selectedAbsensi.waktu_checkin).toLocaleString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })
+                    : '-'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Metode Absensi</span>
+                <span className="badge badge-neutral" style={{ textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  {selectedAbsensi.metode === 'qr_scan' ? 'Scan QR Code' : 'Input Manual Panitia'}
+                </span>
+              </div>
+              {selectedAbsensi.verifikator && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Diverifikasi Oleh</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{selectedAbsensi.verifikator.nama} ({selectedAbsensi.verifikator.role})</span>
+                </div>
+              )}
+              {selectedAbsensi.catatan && (
+                <div style={{ background: 'var(--surface-50)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 2 }}>Catatan:</div>
+                  <div style={{ fontSize: '0.85rem' }}>{selectedAbsensi.catatan}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: 0 }}>
+              <button type="button" className="btn btn-primary" onClick={() => setShowDetailModal(false)} style={{ width: '100%' }}>
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

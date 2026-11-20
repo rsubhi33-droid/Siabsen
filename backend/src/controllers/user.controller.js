@@ -11,7 +11,13 @@ const getAll = async (req, res, next) => {
     const offset = (page - 1) * limit;
     const where = {};
 
-    if (role) where.role = role;
+    // Jika bukan admin (misal panitia), hanya boleh melihat user ber-role mahasiswa
+    if (req.user.role === 'panitia') {
+      where.role = 'mahasiswa';
+    } else if (role) {
+      where.role = role;
+    }
+
     if (search) {
       const { Op } = require('sequelize');
       where[Op.or] = [
@@ -21,10 +27,50 @@ const getAll = async (req, res, next) => {
       ];
     }
 
+    // Untuk panitia, kirim hanya field minimal yang relevan
+    const attributes = req.user.role === 'panitia'
+      ? ['id', 'nama', 'nim', 'prodi', 'angkatan', 'role']
+      : { exclude: ['password'] };
+
     const { count, rows } = await db.User.findAndCountAll({
       where,
-      attributes: { exclude: ['password'] },
+      attributes,
       order: [['created_at', 'DESC']],
+      limit: parseInt(limit, 10),
+      offset,
+    });
+
+    return paginated(res, { data: rows, page, limit, totalItems: count });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/users/mahasiswa/search (Endpoint khusus pencarian mahasiswa untuk panitia/admin)
+ */
+const searchMahasiswa = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    const offset = (page - 1) * limit;
+    const { Op } = require('sequelize');
+
+    const where = {
+      role: 'mahasiswa',
+      is_active: true,
+    };
+
+    if (search) {
+      where[Op.or] = [
+        { nama: { [Op.like]: `%${search}%` } },
+        { nim: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const { count, rows } = await db.User.findAndCountAll({
+      where,
+      attributes: ['id', 'nama', 'nim', 'prodi', 'angkatan'],
+      order: [['nama', 'ASC']],
       limit: parseInt(limit, 10),
       offset,
     });
@@ -115,4 +161,4 @@ const toggleActive = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, getById, create, update, toggleActive };
+module.exports = { getAll, getById, create, update, toggleActive, searchMahasiswa };

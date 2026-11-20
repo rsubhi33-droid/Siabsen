@@ -72,7 +72,7 @@ const ScanQR = () => {
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 8, color: 'var(--accent-400)' }}>Check-in Berhasil!</h2>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>{result.message}</p>
 
-                <div style={{ width: '100%', padding: 20, background: 'var(--glass-bg)', borderRadius: 'var(--radius-md)', marginBottom: 24 }}>
+                <div style={{ width: '100%', padding: 20, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)', marginBottom: 24 }}>
                   <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Status</span>
                     <span className={`badge ${result.status === 'hadir' ? 'badge-accent' : 'badge-warm'}`}>
@@ -127,7 +127,7 @@ const ScanQR = () => {
             { icon: Clock, title: 'Tepat Waktu', desc: 'Scan QR sebelum 15 menit setelah jam mulai agar status "Hadir"' },
             { icon: CheckCircle, title: 'Satu Kali Scan', desc: 'Setiap peserta hanya perlu scan satu kali per sesi kegiatan' },
           ].map((tip, i) => (
-            <div key={i} style={{ padding: 16, background: 'var(--glass-bg)', borderRadius: 'var(--radius-md)' }}>
+            <div key={i} style={{ padding: 16, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)' }}>
               <tip.icon size={24} style={{ color: 'var(--primary-400)', marginBottom: 8 }} />
               <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>{tip.title}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{tip.desc}</div>

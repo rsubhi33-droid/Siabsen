@@ -65,7 +65,11 @@ const Evaluasi = () => {
           </div>
           <div className="stat-card primary">
             <div className="stat-icon primary"><Award size={24} /></div>
-            <div className="stat-value">{stats.total_mahasiswa > 0 ? ((stats.total_absensi / stats.total_mahasiswa) * 100 / Math.max(stats.total_kegiatan, 1)).toFixed(0) : 0}%</div>
+            <div className="stat-value">
+              {stats.total_mahasiswa > 0 && stats.total_kegiatan > 0
+                ? Math.min(100, ((stats.total_absensi / (stats.total_mahasiswa * stats.total_kegiatan)) * 100)).toFixed(0)
+                : 0}%
+            </div>
             <div className="stat-label">Rata-rata Partisipasi</div>
           </div>
         </div>
@@ -96,7 +100,7 @@ const Evaluasi = () => {
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>peserta</span>
                       </div>
                     </div>
-                    <div style={{ height: 10, background: 'var(--glass-bg)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                    <div style={{ height: 10, background: 'var(--surface-100)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                       <div style={{
                         width: `${pct}%`, height: '100%',
                         background: i % 2 === 0 ? 'linear-gradient(90deg, var(--primary-600), var(--primary-400))' : 'linear-gradient(90deg, var(--accent-600), var(--accent-400))',

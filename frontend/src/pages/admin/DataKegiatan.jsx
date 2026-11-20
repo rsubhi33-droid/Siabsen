@@ -40,20 +40,24 @@ const DataKegiatan = () => {
     try {
       const res = await getDashboardStats();
       setStats(res.data.data);
-    } catch {}
+    } catch { }
   };
 
   const fetchKategori = async () => {
     try {
       const res = await getMasterData({ tipe: 'kategori_kegiatan' });
       setKategoriList(res.data.data);
-    } catch {}
+    } catch { }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const payload = { ...form };
+      if (payload.tanggal_mulai && payload.tanggal_selesai && payload.tanggal_selesai < payload.tanggal_mulai) {
+        toast.error('Tanggal selesai harus sama atau setelah tanggal mulai');
+        return;
+      }
       if (payload.kategori_id) payload.kategori_id = parseInt(payload.kategori_id);
       if (payload.kuota) payload.kuota = parseInt(payload.kuota);
       if (!payload.kategori_id) delete payload.kategori_id;
@@ -100,7 +104,7 @@ const DataKegiatan = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Dashboard Admin</h1>
+        <h1>Data Kegiatan</h1>
         <p>Kelola kegiatan dan pantau statistik absensi fakultas</p>
       </div>
 

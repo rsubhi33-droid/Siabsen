@@ -37,6 +37,9 @@ const BuatSesi = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.jam_mulai && form.jam_selesai && form.jam_selesai <= form.jam_mulai) {
+      return toast.error('Jam selesai harus setelah jam mulai');
+    }
     setSubmitting(true);
     try {
       await createSesi(selectedKegiatan, form);
@@ -128,7 +131,7 @@ const BuatSesi = () => {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {sesiList.map((s, i) => (
-                <div key={s.id} style={{ padding: 16, background: 'var(--glass-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+                <div key={s.id} style={{ padding: 16, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
                   <div className="flex items-center justify-between">
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{s.nama_sesi}</div>

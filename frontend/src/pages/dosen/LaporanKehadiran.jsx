@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { FileText, Download, BarChart3, Users, CalendarDays, Activity } from 'lucide-react';
-import { getLaporan, generateLaporan } from '../../api/laporan';
+import { getLaporan, generateLaporan, downloadLaporanFile } from '../../api/laporan';
 import { getKegiatan } from '../../api/kegiatan';
 import { getDashboardStats, getKehadiranPerKegiatan } from '../../api/masterData';
-import api from '../../api/axios';
 import toast from 'react-hot-toast';
 
 const LaporanKehadiran = () => {
@@ -50,10 +49,13 @@ const LaporanKehadiran = () => {
     finally { setGenerating(false); }
   };
 
-  const handleDownload = (id) => {
-    const token = localStorage.getItem('siabsen_token');
-    const baseURL = api.defaults.baseURL;
-    window.open(`${baseURL}/laporan/download/${id}?token=${token}`, '_blank');
+  const handleDownload = async (id, filename) => {
+    try {
+      await downloadLaporanFile(id, filename);
+      toast.success('Laporan berhasil diunduh');
+    } catch {
+      toast.error('Gagal mengunduh laporan');
+    }
   };
 
   // Bar chart
@@ -111,8 +113,8 @@ const LaporanKehadiran = () => {
                       <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', maxWidth: '70%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.nama}</span>
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-400)' }}>{total}</span>
                     </div>
-                    <div style={{ height: 8, background: 'var(--glass-bg)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, var(--primary-600), var(--primary-400))`, borderRadius: 'var(--radius-full)', transition: 'width 0.6s ease' }} />
+                    <div style={{ height: 8, background: 'var(--surface-100)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, var(--primary-600), var(--primary-500))`, borderRadius: 'var(--radius-full)', transition: 'width 0.6s ease' }} />
                     </div>
                   </div>
                 );

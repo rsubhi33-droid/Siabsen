@@ -12,7 +12,7 @@ router.get('/', authenticate, kegiatanCtrl.getAll);
 router.get('/:id', authenticate, kegiatanCtrl.getById);
 router.post('/', authenticate, checkRole('admin', 'panitia'), validate(createKegiatanSchema), kegiatanCtrl.create);
 router.put('/:id', authenticate, checkRole('admin', 'panitia'), validate(updateKegiatanSchema), kegiatanCtrl.update);
-router.delete('/:id', authenticate, checkRole('admin'), kegiatanCtrl.remove);
+router.delete('/:id', authenticate, checkRole('admin', 'panitia'), kegiatanCtrl.remove);
 
 // Sesi kegiatan (nested)
 router.get('/:kegiatanId/sesi', authenticate, sesiCtrl.getSesiByKegiatan);

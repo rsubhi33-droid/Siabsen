@@ -47,7 +47,7 @@ const KegiatanSaya = () => {
   const fetchKegiatan = async () => {
     try {
       setLoading(true);
-      const res = await getKegiatan({ page, limit: 10, search });
+      const res = await getKegiatan({ page, limit: 10, search, saya: true });
       setKegiatan(res.data.data);
       setMeta(res.data.meta || {});
     } catch { toast.error('Gagal memuat kegiatan'); }
@@ -66,6 +66,10 @@ const KegiatanSaya = () => {
     e.preventDefault();
     try {
       const payload = { ...kegiatanForm };
+      if (payload.tanggal_mulai && payload.tanggal_selesai && payload.tanggal_selesai < payload.tanggal_mulai) {
+        toast.error('Tanggal selesai harus sama atau setelah tanggal mulai');
+        return;
+      }
       if (payload.kategori_id) payload.kategori_id = parseInt(payload.kategori_id);
       if (payload.kuota) payload.kuota = parseInt(payload.kuota);
       if (!payload.kategori_id) delete payload.kategori_id;
@@ -93,6 +97,9 @@ const KegiatanSaya = () => {
 
   const handleSesiSubmit = async (e) => {
     e.preventDefault();
+    if (sesiForm.jam_mulai && sesiForm.jam_selesai && sesiForm.jam_selesai <= sesiForm.jam_mulai) {
+      return toast.error('Jam selesai harus setelah jam mulai');
+    }
     try {
       await createSesi(selectedKegiatan.id, sesiForm);
       toast.success('Sesi berhasil dibuat');
@@ -102,15 +109,21 @@ const KegiatanSaya = () => {
     } catch (err) { toast.error(err.response?.data?.message || 'Gagal membuat sesi'); }
   };
 
-  const handleGenerateQr = async (sesi) => {
+  const handleGenerateQr = async (sesi, isAuto = false) => {
     try {
       const res = await generateQr(sesi.id);
       setQrData(res.data.data);
       setActiveSesi(sesi);
       setShowQrModal(true);
-      toast.success('QR Code di-generate');
+      if (!isAuto) {
+        toast.success('QR Code di-generate');
+      }
       fetchSesi(selectedKegiatan.id);
-    } catch (err) { toast.error(err.response?.data?.message || 'Gagal generate QR'); }
+    } catch (err) {
+      if (!isAuto) {
+        toast.error(err.response?.data?.message || 'Gagal generate QR');
+      }
+    }
   };
 
   const handleToggleSesi = async (sesiId) => {
@@ -239,8 +252,9 @@ const KegiatanSaya = () => {
                 qrToken={qrData.qr_token}
                 qrImage={qrData.qr_image}
                 sesi={activeSesi}
-                ttl={parseInt(60)}
-                onRefresh={() => handleGenerateQr(activeSesi)}
+                ttl={60}
+                autoRefresh={true}
+                onRefresh={(isAuto) => handleGenerateQr(activeSesi, isAuto)}
               />
             </div>
           </div>
@@ -259,7 +273,7 @@ const KegiatanSaya = () => {
               ) : (
                 <div className="table-wrapper">
                   <table className="data-table">
-                    <thead><tr><th>No</th><th>Nama</th><th>NIM</th><th>Prodi</th><th>Status</th></tr></thead>
+                    <thead><tr><th>No</th><th>Nama</th><th>NIM</th><th>Prodi</th><th>Waktu Absen</th><th>Metode</th><th>Status</th></tr></thead>
                     <tbody>
                       {absensiList.map((a, i) => (
                         <tr key={a.id}>
@@ -267,6 +281,14 @@ const KegiatanSaya = () => {
                           <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{a.user?.nama || '-'}</td>
                           <td>{a.user?.nim || '-'}</td>
                           <td>{a.user?.prodi || '-'}</td>
+                          <td style={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                            {a.waktu_checkin ? new Date(a.waktu_checkin).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
+                          </td>
+                          <td style={{ fontSize: '0.78rem' }}>
+                            <span className="badge badge-neutral" style={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+                              {a.metode === 'qr_scan' ? 'QR Code' : 'Manual'}
+                            </span>
+                          </td>
                           <td><span className={`badge ${a.status === 'hadir' ? 'badge-accent' : a.status === 'terlambat' ? 'badge-warm' : 'badge-danger'}`}>{a.status}</span></td>
                         </tr>
                       ))}

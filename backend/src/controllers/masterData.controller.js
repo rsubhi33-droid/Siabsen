@@ -70,6 +70,19 @@ const remove = async (req, res, next) => {
     const item = await db.MasterData.findByPk(req.params.id);
     if (!item) throw ApiError.notFound('Master data tidak ditemukan.');
 
+    // Cegah penghapusan jika kategori masih digunakan oleh kegiatan aktif/terdata
+    if (item.tipe === 'kategori_kegiatan') {
+      const kegiatanCount = await db.Kegiatan.count({
+        where: { kategori_id: item.id },
+      });
+
+      if (kegiatanCount > 0) {
+        throw ApiError.badRequest(
+          `Kategori "${item.nama}" tidak dapat dihapus karena masih digunakan oleh ${kegiatanCount} kegiatan.`
+        );
+      }
+    }
+
     await item.destroy();
     return success(res, { message: 'Master data berhasil dihapus.' });
   } catch (err) {

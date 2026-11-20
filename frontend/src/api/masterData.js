@@ -6,6 +6,7 @@ export const updateMasterData = (id, data) => api.put(`/master-data/${id}`, data
 export const deleteMasterData = (id) => api.delete(`/master-data/${id}`);
 
 export const getUsers = (params) => api.get('/users', { params });
+export const searchMahasiswaApi = (params) => api.get('/users/mahasiswa/search', { params });
 export const getUserById = (id) => api.get(`/users/${id}`);
 export const createUser = (data) => api.post('/users', data);
 export const updateUser = (id, data) => api.put(`/users/${id}`, data);
